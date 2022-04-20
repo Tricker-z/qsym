@@ -1,5 +1,6 @@
 #include "expr_builder.h"
 #include "solver.h"
+#include "call_stack_manager.h"
 #include <llvm/ADT/StringRef.h>
 
 namespace qsym {

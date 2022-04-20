@@ -5,8 +5,8 @@
 // NOTE: Some simplification is ported from KLEE
 namespace qsym {
 
-KNOB<bool> g_opt_debug_subsumption(KNOB_MODE_WRITEONCE, "pintool",
-    "debug_subsumption", "0", "debug constraints subsumption");
+// KNOB<bool> g_opt_debug_subsumption(KNOB_MODE_WRITEONCE, "pintool",
+//     "debug_subsumption", "0", "debug constraints subsumption");
 
 Kind swapKind(Kind kind) {
   // function for finding neg_op s.t. x op y ==> y neg_op x
@@ -163,7 +163,7 @@ Expr::Expr(Kind kind, UINT32 bits)
   , kind_(kind)
   , bits_(bits)
   , children_()
-  , context_(g_z3_context)
+  , context_(*g_z3_context)
   , expr_(NULL)
   , hash_(NULL)
   , range_sets{}
@@ -346,10 +346,10 @@ void Expr::addConstraint(
 }
 
 void Expr::addConstraint(Kind kind, llvm::APInt rhs, llvm::APInt adjustment) {
-  if (g_opt_debug_subsumption.Value()) {
-    LOG_INFO("Before subsumption: " + this->toString() + "\n");
-    printConstraints();
-  }
+  // if (g_opt_debug_subsumption.Value()) {
+  //   LOG_INFO("Before subsumption: " + this->toString() + "\n");
+  //   printConstraints();
+  // }
 
   switch (kind) {
     case Slt:
@@ -373,10 +373,10 @@ void Expr::addConstraint(Kind kind, llvm::APInt rhs, llvm::APInt adjustment) {
       break;
   }
 
-  if (g_opt_debug_subsumption.Value()) {
-    LOG_INFO("After subsumption: " + this->toString() + "\n");
-    printConstraints();
-  }
+  // if (g_opt_debug_subsumption.Value()) {
+  //   LOG_INFO("After subsumption: " + this->toString() + "\n");
+  //   printConstraints();
+  // }
 }
 
 void ConstantExpr::print(ostream& os, UINT depth) const {

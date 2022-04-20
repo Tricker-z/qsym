@@ -87,7 +87,7 @@ Solver::Solver(
   : input_file_(input_file)
   , inputs_()
   , out_dir_(out_dir)
-  , context_(g_z3_context)
+  , context_(*g_z3_context)
   , solver_(z3::solver(context_, "QF_BV"))
   , num_generated_(0)
   , trace_(bitmap)

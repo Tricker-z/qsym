@@ -18,7 +18,7 @@
 // XXX: need to change into non-global variable?
 namespace qsym {
 
-extern z3::context g_z3_context;
+extern z3::context *g_z3_context;
 
 const INT32 kMaxDepth = 100;
 
