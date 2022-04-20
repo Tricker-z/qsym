@@ -83,7 +83,8 @@ inline bool isEqual(ExprRef e, bool taken) {
 Solver::Solver(
     const std::string input_file,
     const std::string out_dir,
-    const std::string bitmap)
+    const std::string bitmap,
+    const int timeout)
   : input_file_(input_file)
   , inputs_()
   , out_dir_(out_dir)
@@ -94,7 +95,7 @@ Solver::Solver(
   , last_interested_(false)
   , syncing_(false)
   , start_time_(getTimeStamp())
-  , solving_time_(0)
+  , timeout_(timeout * kUsToS)
   , last_pc_(0)
   , dep_forest_()
 {
@@ -125,12 +126,7 @@ void Solver::add(z3::expr expr) {
 }
 
 z3::check_result Solver::check() {
-  uint64_t before = getTimeStamp();
   z3::check_result res;
-  LOG_STAT(
-      "SMT: { \"solving_time\": " + decstr(solving_time_) + ", "
-      + "\"total_time\": " + decstr(before - start_time_) + " }\n");
-  // LOG_DEBUG("Constraints: " + solver_.to_smt2() + "\n");
   try {
     res = solver_.check();
   }
@@ -139,10 +135,6 @@ z3::check_result Solver::check() {
     // timeout can cause exception
     res = z3::unknown;
   }
-  uint64_t cur = getTimeStamp();
-  uint64_t elapsed = cur - before;
-  solving_time_ += elapsed;
-  LOG_STAT("SMT: { \"solving_time\": " + decstr(solving_time_) + " }\n");
   return res;
 }
 
@@ -235,7 +227,6 @@ void Solver::addValue(ExprRef e, llvm::APInt val) {
 
 void Solver::solveAll(ExprRef e, llvm::APInt val) {
   if (last_interested_) {
-    std::string postfix = "";
     ExprRef expr_val = g_expr_builder->createConstant(val, e->bits());
     ExprRef expr_concrete = g_expr_builder->createBinaryExpr(Equal, e, expr_val);
 
@@ -247,13 +238,13 @@ void Solver::solveAll(ExprRef e, llvm::APInt val) {
       // Optimistic solving
       reset();
       addToSolver(expr_concrete, false);
-      postfix = "optimistic";
     }
 
     z3::expr z3_expr = e->toZ3Expr();
     while(true) {
-      if (!checkAndSave(postfix))
+      if (check() != z3::sat)
         break;
+      logConstraints();
       z3::expr value = getPossibleValue(z3_expr);
       add(value != z3_expr);
     }
@@ -325,9 +316,9 @@ void Solver::saveValues(const std::string& postfix) {
   if (!postfix.empty())
       fname = fname + "-" + postfix;
   ofstream of(fname, std::ofstream::out | std::ofstream::binary);
-  LOG_INFO("New testcase: " + fname + "\n");
+  // LOG_INFO("New testcase: " + fname + "\n");
   if (of.fail())
-    LOG_FATAL("Unable to open a file to write results\n");
+    // LOG_FATAL("Unable to open a file to write results\n");
 
       // TODO: batch write
       for (unsigned i = 0; i < values.size(); i++) {
@@ -356,7 +347,7 @@ z3::expr Solver::getMinValue(z3::expr& z3_expr) {
   push();
   z3::expr value(context_);
   while (true) {
-    if (checkAndSave()) {
+    if (check() == z3::sat) {
       value = getPossibleValue(z3_expr);
       solver_.add(z3::ult(z3_expr, value));
     }
@@ -371,7 +362,7 @@ z3::expr Solver::getMaxValue(z3::expr& z3_expr) {
   push();
   z3::expr value(context_);
   while (true) {
-    if (checkAndSave()) {
+    if (check() == z3::sat) {
       value = getPossibleValue(z3_expr);
       solver_.add(z3::ugt(z3_expr, value));
     }
@@ -420,6 +411,16 @@ void Solver::syncConstraints(ExprRef e) {
   }
 
   checkFeasible();
+}
+
+void Solver::logConstraints() {
+  LOG_STAT("FLIPME" + std::to_string(last_pc_) + "\n" + solver_.to_smt2() + "FLIPMEEND\n");
+  // check timeout
+  uint64_t cur = getTimeStamp();
+  if (cur - start_time_ > timeout_) {
+    LOG_INFO("Timeout for solving one file\n");
+    exit(-1);
+  }
 }
 
 void Solver::addConstraint(ExprRef e, bool taken, bool is_interesting) {
@@ -518,20 +519,22 @@ bool Solver::isInterestingJcc(ExprRef rel_expr, bool taken, ADDRINT pc) {
 void Solver::negatePath(ExprRef e, bool taken) {
   reset();
   syncConstraints(e);
+  // negate the branch
   addToSolver(e, !taken);
-  bool sat = checkAndSave();
-  if (!sat) {
-    reset();
-    // optimistic solving
-    addToSolver(e, !taken);
-    checkAndSave("optimistic");
-  }
+  logConstraints();
+  // optimistic solving
+  reset();
+  addToSolver(e, !taken);
+  logConstraints();
+  // z3::solver s(context_);
+  // s.add(e->toZ3Expr());
+  // std::cout << "FLIPME" << last_pc_ << "\n" << s.to_smt2() << "FLIPMEEND\n";
 }
 
 void Solver::solveOne(z3::expr z3_expr) {
   push();
   add(z3_expr);
-  checkAndSave();
+  logConstraints();
   pop();
 }
 

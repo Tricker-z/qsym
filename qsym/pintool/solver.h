@@ -27,7 +27,8 @@ public:
   Solver(
       const std::string input_file,
       const std::string out_dir,
-      const std::string bitmap);
+      const std::string bitmap,
+      const int timeout);
 
   void push();
   void reset();
@@ -59,6 +60,7 @@ protected:
   bool                  syncing_;
   uint64_t              start_time_;
   uint64_t              solving_time_;
+  uint64_t              timeout_;
   ADDRINT               last_pc_;
   DependencyForest<Expr> dep_forest_;
 
@@ -75,6 +77,7 @@ protected:
 
   void addToSolver(ExprRef e, bool taken);
   void syncConstraints(ExprRef e);
+  void logConstraints();
 
   void addConstraint(ExprRef e, bool taken, bool is_interesting);
   void addConstraint(ExprRef e);

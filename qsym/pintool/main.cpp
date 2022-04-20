@@ -43,6 +43,8 @@ static KNOB<string> g_opt_bitmap(KNOB_MODE_WRITEONCE, "pintool",
     "b", "", "bitmap file");
 static KNOB<int> g_opt_linearization(KNOB_MODE_WRITEONCE, "pintool",
     "l", "0", "turn on linearization");
+static KNOB<int> g_opt_timeout(KNOB_MODE_WRITEONCE, "pintool",
+    "t", "60", "duration of solving");
 
 namespace {
 
@@ -80,8 +82,10 @@ multiple_opt:
 void initializeGlobalContext(
     const std::string input,
     const std::string out_dir,
-    const std::string bitmap) {
-  g_solver = new Solver(input, out_dir, bitmap);
+    const std::string bitmap,
+    const int timeout) {
+  
+  g_solver = new Solver(input, out_dir, bitmap, timeout);
 
   if (g_opt_linearization.Value())
     g_expr_builder = PruneExprBuilder::create();
@@ -109,7 +113,8 @@ int main(int argc, char** argv) {
   initializeGlobalContext(
       g_opt_input.Value(),
       g_opt_outdir.Value(),
-      g_opt_bitmap.Value());
+      g_opt_bitmap.Value(),
+      g_opt_timeout.Value());
   initializeQsym();
   PIN_StartProgram();
 
