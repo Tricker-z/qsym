@@ -83,14 +83,15 @@ inline bool isEqual(ExprRef e, bool taken) {
 Solver::Solver(
     const std::string input_file,
     const std::string out_dir,
-    const std::string bitmap)
+    const std::string bitmap,
+    const std::string crack_map)
   : input_file_(input_file)
   , inputs_()
   , out_dir_(out_dir)
   , context_(*g_z3_context)
   , solver_(z3::solver(context_, "QF_BV"))
   , num_generated_(0)
-  , trace_(bitmap)
+  , trace_(bitmap, crack_map)
   , last_interested_(false)
   , syncing_(false)
   , start_time_(getTimeStamp())
@@ -185,6 +186,25 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
   if (is_interesting)
     negatePath(e, taken);
   addConstraint(e, taken, is_interesting);
+}
+
+void Solver::crackJcc(ExprRef e, bool taken, UINT16 edge) {
+
+  if (e->isConcrete())
+    return;
+  
+  if (e->kind() == Bool) {
+    assert(!(castAs<BoolExpr>(e)->value()  ^ taken));
+    return;
+  }
+
+  assert(isRelational(e.get()));
+
+  bool is_crack = trace_.isCrackBranch(edge);
+
+  if (is_crack)
+    negatePath(e, taken);
+  addConstraint(e, taken, true);
 }
 
 void Solver::addAddr(ExprRef e, ADDRINT addr) {

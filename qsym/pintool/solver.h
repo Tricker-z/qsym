@@ -28,7 +28,8 @@ public:
   Solver(
       const std::string input_file,
       const std::string out_dir,
-      const std::string bitmap);
+      const std::string bitmap,
+      const std::string crack_map);
 
   void push();
   void reset();
@@ -38,6 +39,7 @@ public:
 
   bool checkAndSave(const std::string& postfix="");
   void addJcc(ExprRef, bool, ADDRINT);
+  void crackJcc(ExprRef, bool, UINT16);
   void addAddr(ExprRef, ADDRINT);
   void addAddr(ExprRef, llvm::APInt);
   void addValue(ExprRef, ADDRINT);
