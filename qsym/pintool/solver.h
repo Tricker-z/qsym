@@ -11,12 +11,13 @@
 
 #include "afl_trace_map.h"
 #include "expr.h"
-#include "thread_context.h"
+// #include "thread_context.h"
+#include "expr_builder.h"
 #include "dependency.h"
 
 namespace qsym {
 
-extern z3::context g_z3_context;
+extern z3::context *g_z3_context;
 typedef std::unordered_set<ExprRef, ExprRefHash, ExprRefEqual> ExprRefSetTy;
 
 class Solver {

@@ -12,55 +12,55 @@
 #include "third_party/xxhash/xxhash.h"
 
 
-inline REG getAx(USIZE size) {
-  switch(size) {
-    case 1:
-      return REG::REG_AL;
-    case 2:
-      return REG::REG_AX;
-    case 4:
-      return REG::REG_EAX;
-#if __x86_64__
-    case 8:
-      return REG::REG_RAX;
-#endif
-    default:
-      return REG_INVALID();
-  }
-}
+// inline REG getAx(USIZE size) {
+//   switch(size) {
+//     case 1:
+//       return REG::REG_AL;
+//     case 2:
+//       return REG::REG_AX;
+//     case 4:
+//       return REG::REG_EAX;
+// #if __x86_64__
+//     case 8:
+//       return REG::REG_RAX;
+// #endif
+//     default:
+//       return REG_INVALID();
+//   }
+// }
 
-inline REG getAx(REG r) {
-  return getAx(REG_Size(r));
-}
+// inline REG getAx(REG r) {
+//   return getAx(REG_Size(r));
+// }
 
-inline REG getDx(USIZE size) {
-  switch(size) {
-    case 1:
-      return REG::REG_DL;
-    case 2:
-      return REG::REG_DX;
-    case 4:
-      return REG::REG_EDX;
-#if __x86_64__
-    case 8:
-      return REG::REG_RDX;
-#endif
-    default:
-      return REG_INVALID();
-  }
-}
+// inline REG getDx(USIZE size) {
+//   switch(size) {
+//     case 1:
+//       return REG::REG_DL;
+//     case 2:
+//       return REG::REG_DX;
+//     case 4:
+//       return REG::REG_EDX;
+// #if __x86_64__
+//     case 8:
+//       return REG::REG_RDX;
+// #endif
+//     default:
+//       return REG_INVALID();
+//   }
+// }
 
-inline REG getDx(REG r) {
-  return getDx(REG_Size(r));
-}
+// inline REG getDx(REG r) {
+//   return getDx(REG_Size(r));
+// }
 
-inline bool isInterestingReg(REG r) {
-  if (REG_FullRegName(r) != r)
-    return false;
-  // TODO: REG_is_mm(r) can be added?
-  // E: Register mm0 is NOT supported for PIN_GetContextReg/PIN_SetContextReg
-  return REG_is_gr(r) ||  REG_is_xmm(r) || REG_is_ymm(r) || r == REG_INST_PTR;
-}
+// inline bool isInterestingReg(REG r) {
+//   if (REG_FullRegName(r) != r)
+//     return false;
+//   // TODO: REG_is_mm(r) can be added?
+//   // E: Register mm0 is NOT supported for PIN_GetContextReg/PIN_SetContextReg
+//   return REG_is_gr(r) ||  REG_is_xmm(r) || REG_is_ymm(r) || r == REG_INST_PTR;
+// }
 
 inline INT32 getBitCount(INT32 x) {
   return __builtin_popcount(x);

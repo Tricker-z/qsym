@@ -7,18 +7,19 @@
 
 namespace qsym {
 
-KNOB<bool> g_opt_debug(KNOB_MODE_WRITEONCE, "pintool",
-    "d", "0", "turn on debug mode");
+// KNOB<bool> g_opt_debug(KNOB_MODE_WRITEONCE, "pintool",
+//     "d", "0", "turn on debug mode");
 
 void log(const char* tag, const std::string &msg) {
   std::string tagged_msg = std::string("[") + tag + "] " + msg;
   std::cerr << tagged_msg;
 
-  LOG(tagged_msg);
+  // LOG(tagged_msg);
 }
 
 bool isDebugMode() {
-  return g_opt_debug.Value();
+  // return g_opt_debug.Value();
+  return false;
 }
 
 void LOG_FATAL(const std::string &msg) {

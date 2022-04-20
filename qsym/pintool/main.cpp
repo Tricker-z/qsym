@@ -17,7 +17,7 @@ namespace qsym {
   const int     kExitFailure = -1;
   const char*   kDlibSuffix = ".so";
 
-  z3::context   g_z3_context;
+  z3::context   *g_z3_context;
   Memory        g_memory;
   REG           g_thread_context_reg;
   Solver        *g_solver;
@@ -81,6 +81,7 @@ void initializeGlobalContext(
     const std::string input,
     const std::string out_dir,
     const std::string bitmap) {
+  g_z3_context = new z3::context{};
   g_solver = new Solver(input, out_dir, bitmap);
 
   if (g_opt_linearization.Value())

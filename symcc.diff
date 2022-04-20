@@ -1,0 +1,362 @@
+diff --git a/qsym/pintool/afl_trace_map.cpp b/qsym/pintool/afl_trace_map.cpp
+index 1921a1f..76ae3b6 100644
+--- a/qsym/pintool/afl_trace_map.cpp
++++ b/qsym/pintool/afl_trace_map.cpp
+@@ -4,8 +4,8 @@ namespace qsym {
+ 
+ const int kMapSize = 65536;
+ 
+-static  KNOB<bool> g_opt_context_sensitive(KNOB_MODE_WRITEONCE, "pintool",
+-    "context_sensitive", "1", "Generate testcases by awaring of contexts");
++// static  KNOB<bool> g_opt_context_sensitive(KNOB_MODE_WRITEONCE, "pintool",
++//     "context_sensitive", "1", "Generate testcases by awaring of contexts");
+ 
+ namespace {
+ 
+@@ -14,22 +14,22 @@ inline bool isPowerOfTwoOrZero(ADDRINT x) {
+ }
+ 
+ XXH32_hash_t hashPc(ADDRINT pc, bool taken) {
+-  // mimic afl's branch map
+-  PIN_LockClient();
+-  IMG img = IMG_FindByAddress(pc);
+-  PIN_UnlockClient();
++  // // mimic afl's branch map
++  // PIN_LockClient();
++  // IMG img = IMG_FindByAddress(pc);
++  // PIN_UnlockClient();
+ 
+-  // hopefully IMG_Id is same for every execution
+-  if (!IMG_Valid(img))
+-    LOG_FATAL("invalid image");
++  // // hopefully IMG_Id is same for every execution
++  // if (!IMG_Valid(img))
++  //   LOG_FATAL("invalid image");
+ 
+-  pc -= IMG_LowAddress(img);
++  // pc -= IMG_LowAddress(img);
+ 
+-  UINT32 img_id = IMG_Id(img);
++  // UINT32 img_id = IMG_Id(img);
+   XXH32_state_t state;
+   XXH32_reset(&state, 0); // seed = 0
+   XXH32_update(&state, &pc, sizeof(pc));
+-  XXH32_update(&state, &img_id, sizeof(img_id));
++  // XXH32_update(&state, &img_id, sizeof(img_id));
+   XXH32_update(&state, &taken, sizeof(taken));
+   return XXH32_digest(&state) % kMapSize;
+ }
+@@ -68,8 +68,8 @@ ADDRINT AflTraceMap::getIndex(ADDRINT h) {
+ }
+ 
+ bool AflTraceMap::isInterestingContext(ADDRINT h, ADDRINT bits) {
+-  if (!g_opt_context_sensitive.Value())
+-    return false;
++  // if (!g_opt_context_sensitive.Value())
++  //   return false;
+ 
+   bool interesting = false;
+ 
+diff --git a/qsym/pintool/codegen/expr.cpp b/qsym/pintool/codegen/expr.cpp
+index e87d834..0b826ac 100644
+--- a/qsym/pintool/codegen/expr.cpp
++++ b/qsym/pintool/codegen/expr.cpp
+@@ -5,8 +5,8 @@
+ // NOTE: Some simplification is ported from KLEE
+ namespace qsym {
+ 
+-KNOB<bool> g_opt_debug_subsumption(KNOB_MODE_WRITEONCE, "pintool",
+-    "debug_subsumption", "0", "debug constraints subsumption");
++// KNOB<bool> g_opt_debug_subsumption(KNOB_MODE_WRITEONCE, "pintool",
++//     "debug_subsumption", "0", "debug constraints subsumption");
+ 
+ Kind swapKind(Kind kind) {
+   // function for finding neg_op s.t. x op y ==> y neg_op x
+@@ -163,7 +163,7 @@ Expr::Expr(Kind kind, UINT32 bits)
+   , kind_(kind)
+   , bits_(bits)
+   , children_()
+-  , context_(g_z3_context)
++  , context_(*g_z3_context)
+   , expr_(NULL)
+   , hash_(NULL)
+   , range_sets{}
+@@ -346,10 +346,10 @@ void Expr::addConstraint(
+ }
+ 
+ void Expr::addConstraint(Kind kind, llvm::APInt rhs, llvm::APInt adjustment) {
+-  if (g_opt_debug_subsumption.Value()) {
+-    LOG_INFO("Before subsumption: " + this->toString() + "\n");
+-    printConstraints();
+-  }
++  // if (g_opt_debug_subsumption.Value()) {
++  //   LOG_INFO("Before subsumption: " + this->toString() + "\n");
++  //   printConstraints();
++  // }
+ 
+   switch (kind) {
+     case Slt:
+@@ -373,10 +373,10 @@ void Expr::addConstraint(Kind kind, llvm::APInt rhs, llvm::APInt adjustment) {
+       break;
+   }
+ 
+-  if (g_opt_debug_subsumption.Value()) {
+-    LOG_INFO("After subsumption: " + this->toString() + "\n");
+-    printConstraints();
+-  }
++  // if (g_opt_debug_subsumption.Value()) {
++  //   LOG_INFO("After subsumption: " + this->toString() + "\n");
++  //   printConstraints();
++  // }
+ }
+ 
+ void ConstantExpr::print(ostream& os, UINT depth) const {
+diff --git a/qsym/pintool/codegen/expr_builder.cpp b/qsym/pintool/codegen/expr_builder.cpp
+index 79d0d02..f204700 100644
+--- a/qsym/pintool/codegen/expr_builder.cpp
++++ b/qsym/pintool/codegen/expr_builder.cpp
+@@ -1,5 +1,6 @@
+ #include "expr_builder.h"
+ #include "solver.h"
++#include "call_stack_manager.h"
+ #include <llvm/ADT/StringRef.h>
+ 
+ namespace qsym {
+diff --git a/qsym/pintool/codegen/gen_expr.py b/qsym/pintool/codegen/gen_expr.py
+index 4777571..5a43c2b 100755
+--- a/qsym/pintool/codegen/gen_expr.py
++++ b/qsym/pintool/codegen/gen_expr.py
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python2
+ import os
++import sys
+ 
+ if __name__ == "__main__":
+     code = []
+@@ -23,5 +24,6 @@ if __name__ == "__main__":
+     with open(os.path.join(cur_dir, "expr.cpp")) as f:
+         data = f.read()
+ 
+-    with open(os.path.join(cur_dir, "../expr__gen.cpp"), "w") as f:
++    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(cur_dir, "..")
++    with open(os.path.join(out_dir, "expr__gen.cpp"), "w") as f:
+         f.write(data.replace("{CODEGEN}", ''.join(code)))
+diff --git a/qsym/pintool/codegen/gen_expr_builder.py b/qsym/pintool/codegen/gen_expr_builder.py
+index e109cc1..c521d61 100755
+--- a/qsym/pintool/codegen/gen_expr_builder.py
++++ b/qsym/pintool/codegen/gen_expr_builder.py
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python2
+ import os
++import sys
+ 
+ def parse_func(func):
+   func = func.strip().replace("virtual ", "").replace("ExprRef ", "", 1)[:-1]
+@@ -213,5 +214,6 @@ if __name__ == '__main__':
+     with open(os.path.join(cur_dir, "expr_builder.cpp")) as f:
+         data = f.read()
+ 
+-    with open(os.path.join(cur_dir, "../expr_builder__gen.cpp"), "w") as f:
++    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(cur_dir, "..")
++    with open(os.path.join(out_dir, "expr_builder__gen.cpp"), "w") as f:
+         f.write(data.replace("{CODEGEN}", ''.join(code)))
+diff --git a/qsym/pintool/common.h b/qsym/pintool/common.h
+index 14e601a..424dc91 100644
+--- a/qsym/pintool/common.h
++++ b/qsym/pintool/common.h
+@@ -12,55 +12,55 @@
+ #include "third_party/xxhash/xxhash.h"
+ 
+ 
+-inline REG getAx(USIZE size) {
+-  switch(size) {
+-    case 1:
+-      return REG::REG_AL;
+-    case 2:
+-      return REG::REG_AX;
+-    case 4:
+-      return REG::REG_EAX;
+-#if __x86_64__
+-    case 8:
+-      return REG::REG_RAX;
+-#endif
+-    default:
+-      return REG_INVALID();
+-  }
+-}
++// inline REG getAx(USIZE size) {
++//   switch(size) {
++//     case 1:
++//       return REG::REG_AL;
++//     case 2:
++//       return REG::REG_AX;
++//     case 4:
++//       return REG::REG_EAX;
++// #if __x86_64__
++//     case 8:
++//       return REG::REG_RAX;
++// #endif
++//     default:
++//       return REG_INVALID();
++//   }
++// }
+ 
+-inline REG getAx(REG r) {
+-  return getAx(REG_Size(r));
+-}
++// inline REG getAx(REG r) {
++//   return getAx(REG_Size(r));
++// }
+ 
+-inline REG getDx(USIZE size) {
+-  switch(size) {
+-    case 1:
+-      return REG::REG_DL;
+-    case 2:
+-      return REG::REG_DX;
+-    case 4:
+-      return REG::REG_EDX;
+-#if __x86_64__
+-    case 8:
+-      return REG::REG_RDX;
+-#endif
+-    default:
+-      return REG_INVALID();
+-  }
+-}
++// inline REG getDx(USIZE size) {
++//   switch(size) {
++//     case 1:
++//       return REG::REG_DL;
++//     case 2:
++//       return REG::REG_DX;
++//     case 4:
++//       return REG::REG_EDX;
++// #if __x86_64__
++//     case 8:
++//       return REG::REG_RDX;
++// #endif
++//     default:
++//       return REG_INVALID();
++//   }
++// }
+ 
+-inline REG getDx(REG r) {
+-  return getDx(REG_Size(r));
+-}
++// inline REG getDx(REG r) {
++//   return getDx(REG_Size(r));
++// }
+ 
+-inline bool isInterestingReg(REG r) {
+-  if (REG_FullRegName(r) != r)
+-    return false;
+-  // TODO: REG_is_mm(r) can be added?
+-  // E: Register mm0 is NOT supported for PIN_GetContextReg/PIN_SetContextReg
+-  return REG_is_gr(r) ||  REG_is_xmm(r) || REG_is_ymm(r) || r == REG_INST_PTR;
+-}
++// inline bool isInterestingReg(REG r) {
++//   if (REG_FullRegName(r) != r)
++//     return false;
++//   // TODO: REG_is_mm(r) can be added?
++//   // E: Register mm0 is NOT supported for PIN_GetContextReg/PIN_SetContextReg
++//   return REG_is_gr(r) ||  REG_is_xmm(r) || REG_is_ymm(r) || r == REG_INST_PTR;
++// }
+ 
+ inline INT32 getBitCount(INT32 x) {
+   return __builtin_popcount(x);
+diff --git a/qsym/pintool/expr.h b/qsym/pintool/expr.h
+index d3f7491..2c7b2dd 100644
+--- a/qsym/pintool/expr.h
++++ b/qsym/pintool/expr.h
+@@ -18,7 +18,7 @@
+ // XXX: need to change into non-global variable?
+ namespace qsym {
+ 
+-extern z3::context g_z3_context;
++extern z3::context *g_z3_context;
+ 
+ const INT32 kMaxDepth = 100;
+ 
+diff --git a/qsym/pintool/logging.cpp b/qsym/pintool/logging.cpp
+index 277f816..285fe36 100644
+--- a/qsym/pintool/logging.cpp
++++ b/qsym/pintool/logging.cpp
+@@ -7,18 +7,19 @@
+ 
+ namespace qsym {
+ 
+-KNOB<bool> g_opt_debug(KNOB_MODE_WRITEONCE, "pintool",
+-    "d", "0", "turn on debug mode");
++// KNOB<bool> g_opt_debug(KNOB_MODE_WRITEONCE, "pintool",
++//     "d", "0", "turn on debug mode");
+ 
+ void log(const char* tag, const std::string &msg) {
+   std::string tagged_msg = std::string("[") + tag + "] " + msg;
+   std::cerr << tagged_msg;
+ 
+-  LOG(tagged_msg);
++  // LOG(tagged_msg);
+ }
+ 
+ bool isDebugMode() {
+-  return g_opt_debug.Value();
++  // return g_opt_debug.Value();
++  return false;
+ }
+ 
+ void LOG_FATAL(const std::string &msg) {
+diff --git a/qsym/pintool/main.cpp b/qsym/pintool/main.cpp
+index d9b6a1a..16a54c8 100644
+--- a/qsym/pintool/main.cpp
++++ b/qsym/pintool/main.cpp
+@@ -17,7 +17,7 @@ namespace qsym {
+   const int     kExitFailure = -1;
+   const char*   kDlibSuffix = ".so";
+ 
+-  z3::context   g_z3_context;
++  z3::context   *g_z3_context;
+   Memory        g_memory;
+   REG           g_thread_context_reg;
+   Solver        *g_solver;
+@@ -81,6 +81,7 @@ void initializeGlobalContext(
+     const std::string input,
+     const std::string out_dir,
+     const std::string bitmap) {
++  g_z3_context = new z3::context{};
+   g_solver = new Solver(input, out_dir, bitmap);
+ 
+   if (g_opt_linearization.Value())
+diff --git a/qsym/pintool/solver.cpp b/qsym/pintool/solver.cpp
+index 147334f..b1786ed 100644
+--- a/qsym/pintool/solver.cpp
++++ b/qsym/pintool/solver.cpp
+@@ -87,7 +87,7 @@ Solver::Solver(
+   : input_file_(input_file)
+   , inputs_()
+   , out_dir_(out_dir)
+-  , context_(g_z3_context)
++  , context_(*g_z3_context)
+   , solver_(z3::solver(context_, "QF_BV"))
+   , num_generated_(0)
+   , trace_(bitmap)
+diff --git a/qsym/pintool/solver.h b/qsym/pintool/solver.h
+index e37f091..957c6ef 100644
+--- a/qsym/pintool/solver.h
++++ b/qsym/pintool/solver.h
+@@ -11,12 +11,13 @@
+ 
+ #include "afl_trace_map.h"
+ #include "expr.h"
+-#include "thread_context.h"
++// #include "thread_context.h"
++#include "expr_builder.h"
+ #include "dependency.h"
+ 
+ namespace qsym {
+ 
+-extern z3::context g_z3_context;
++extern z3::context *g_z3_context;
+ typedef std::unordered_set<ExprRef, ExprRefHash, ExprRefEqual> ExprRefSetTy;
+ 
+ class Solver {

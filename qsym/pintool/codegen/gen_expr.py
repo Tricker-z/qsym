@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 import os
+import sys
 
 if __name__ == "__main__":
     code = []
@@ -23,5 +24,6 @@ if __name__ == "__main__":
     with open(os.path.join(cur_dir, "expr.cpp")) as f:
         data = f.read()
 
-    with open(os.path.join(cur_dir, "../expr__gen.cpp"), "w") as f:
+    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(cur_dir, "..")
+    with open(os.path.join(out_dir, "expr__gen.cpp"), "w") as f:
         f.write(data.replace("{CODEGEN}", ''.join(code)))

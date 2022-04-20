@@ -4,8 +4,8 @@ namespace qsym {
 
 const int kMapSize = 65536;
 
-static  KNOB<bool> g_opt_context_sensitive(KNOB_MODE_WRITEONCE, "pintool",
-    "context_sensitive", "1", "Generate testcases by awaring of contexts");
+// static  KNOB<bool> g_opt_context_sensitive(KNOB_MODE_WRITEONCE, "pintool",
+//     "context_sensitive", "1", "Generate testcases by awaring of contexts");
 
 namespace {
 
@@ -14,22 +14,22 @@ inline bool isPowerOfTwoOrZero(ADDRINT x) {
 }
 
 XXH32_hash_t hashPc(ADDRINT pc, bool taken) {
-  // mimic afl's branch map
-  PIN_LockClient();
-  IMG img = IMG_FindByAddress(pc);
-  PIN_UnlockClient();
+  // // mimic afl's branch map
+  // PIN_LockClient();
+  // IMG img = IMG_FindByAddress(pc);
+  // PIN_UnlockClient();
 
-  // hopefully IMG_Id is same for every execution
-  if (!IMG_Valid(img))
-    LOG_FATAL("invalid image");
+  // // hopefully IMG_Id is same for every execution
+  // if (!IMG_Valid(img))
+  //   LOG_FATAL("invalid image");
 
-  pc -= IMG_LowAddress(img);
+  // pc -= IMG_LowAddress(img);
 
-  UINT32 img_id = IMG_Id(img);
+  // UINT32 img_id = IMG_Id(img);
   XXH32_state_t state;
   XXH32_reset(&state, 0); // seed = 0
   XXH32_update(&state, &pc, sizeof(pc));
-  XXH32_update(&state, &img_id, sizeof(img_id));
+  // XXH32_update(&state, &img_id, sizeof(img_id));
   XXH32_update(&state, &taken, sizeof(taken));
   return XXH32_digest(&state) % kMapSize;
 }
@@ -68,8 +68,8 @@ ADDRINT AflTraceMap::getIndex(ADDRINT h) {
 }
 
 bool AflTraceMap::isInterestingContext(ADDRINT h, ADDRINT bits) {
-  if (!g_opt_context_sensitive.Value())
-    return false;
+  // if (!g_opt_context_sensitive.Value())
+  //   return false;
 
   bool interesting = false;
 
