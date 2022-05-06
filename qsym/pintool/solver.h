@@ -38,6 +38,7 @@ public:
 
   bool checkAndSave(const std::string& postfix="");
   void addJcc(ExprRef, bool, ADDRINT);
+  void crackJcc(ExprRef e, bool taken, ADDRINT pc, UINT16 prevLoc, UINT16 succLoc);
   void addAddr(ExprRef, ADDRINT);
   void addAddr(ExprRef, llvm::APInt);
   void addValue(ExprRef, ADDRINT);
@@ -86,6 +87,7 @@ protected:
 
   bool isInterestingJcc(ExprRef, bool, ADDRINT);
   void negatePath(ExprRef, bool);
+  void negateAndLog(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc);
   void solveOne(z3::expr);
 
   void checkFeasible();

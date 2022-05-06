@@ -127,9 +127,9 @@ void Solver::add(z3::expr expr) {
 z3::check_result Solver::check() {
   uint64_t before = getTimeStamp();
   z3::check_result res;
-  LOG_STAT(
-      "SMT: { \"solving_time\": " + decstr(solving_time_) + ", "
-      + "\"total_time\": " + decstr(before - start_time_) + " }\n");
+  // LOG_STAT(
+  //     "SMT: { \"solving_time\": " + decstr(solving_time_) + ", "
+  //     + "\"total_time\": " + decstr(before - start_time_) + " }\n");
   // LOG_DEBUG("Constraints: " + solver_.to_smt2() + "\n");
   try {
     res = solver_.check();
@@ -142,7 +142,7 @@ z3::check_result Solver::check() {
   uint64_t cur = getTimeStamp();
   uint64_t elapsed = cur - before;
   solving_time_ += elapsed;
-  LOG_STAT("SMT: { \"solving_time\": " + decstr(solving_time_) + " }\n");
+  // LOG_STAT("SMT: { \"solving_time\": " + decstr(solving_time_) + " }\n");
   return res;
 }
 
@@ -186,6 +186,32 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
     negatePath(e, taken);
   addConstraint(e, taken, is_interesting);
 }
+
+
+void Solver::crackJcc(ExprRef e, bool taken, ADDRINT pc, UINT16 prevLoc, UINT16 succLoc) {
+  last_pc_ = pc;
+
+  if (e->isConcrete())
+    return;
+
+  if (e->kind() == Bool) {
+    assert(!(castAs<BoolExpr>(e)->value()  ^ taken));
+    return;
+  }
+  assert(isRelational(e.get()));
+
+  bool is_interesting;
+  if (pc == 0) {
+    is_interesting = last_interested_;
+  }
+  else
+    is_interesting = isInterestingJcc(e, taken, pc);
+
+  if (is_interesting)
+    negateAndLog(e, taken, prevLoc, succLoc);
+  addConstraint(e, taken, is_interesting);
+}
+
 
 void Solver::addAddr(ExprRef e, ADDRINT addr) {
   llvm::APInt v(e->bits(), addr);
@@ -325,7 +351,7 @@ void Solver::saveValues(const std::string& postfix) {
   if (!postfix.empty())
       fname = fname + "-" + postfix;
   ofstream of(fname, std::ofstream::out | std::ofstream::binary);
-  LOG_INFO("New testcase: " + fname + "\n");
+  // LOG_INFO("New testcase: " + fname + "\n");
   if (of.fail())
     LOG_FATAL("Unable to open a file to write results\n");
 
@@ -524,6 +550,24 @@ void Solver::negatePath(ExprRef e, bool taken) {
     reset();
     // optimistic solving
     addToSolver(e, !taken);
+    checkAndSave("optimistic");
+  }
+}
+
+
+void Solver::negateAndLog(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc) {
+  reset();
+  syncConstraints(e);
+  addToSolver(e, !taken);
+  LOG_STAT("CRACK:" + std::to_string(prevLoc) + "," + std::to_string(succLoc) + "\n" +
+           solver_.to_smt2() + "CRACK-END\n");
+
+  bool sat = checkAndSave();
+  if (!sat) {
+    reset();
+    addToSolver(e, !taken);
+    LOG_STAT("CRACK:" + std::to_string(prevLoc) + "," + std::to_string(succLoc) + "\n" +
+             solver_.to_smt2() + "CRACK-END\n");
     checkAndSave("optimistic");
   }
 }
