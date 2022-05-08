@@ -83,16 +83,19 @@ inline bool isEqual(ExprRef e, bool taken) {
 Solver::Solver(
     const std::string input_file,
     const std::string out_dir,
-    const std::string bitmap)
+    const std::string bitmap,
+    const std::string crackmap,
+    const bool cracking)
   : input_file_(input_file)
   , inputs_()
   , out_dir_(out_dir)
   , context_(*g_z3_context)
   , solver_(z3::solver(context_, "QF_BV"))
   , num_generated_(0)
-  , trace_(bitmap)
+  , trace_(bitmap, crackmap)
   , last_interested_(false)
   , syncing_(false)
+  , cracking_(cracking)
   , start_time_(getTimeStamp())
   , solving_time_(0)
   , last_pc_(0)
@@ -158,6 +161,9 @@ bool Solver::checkAndSave(const std::string& postfix) {
 }
 
 void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
+
+  if (cracking_) return;
+
   // Save the last instruction pointer for debugging
   last_pc_ = pc;
 
@@ -188,30 +194,24 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
 }
 
 
-void Solver::crackJcc(ExprRef e, bool taken, ADDRINT pc, UINT16 prevLoc, UINT16 succLoc) {
-  last_pc_ = pc;
+void Solver::crackJcc(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc) {
 
-  if (e->isConcrete())
-    return;
+  if (cracking_ && trace_.isCrackBranch(prevLoc)) {
+    reset();
+    syncConstraints(e);
+    addToSolver(e, !taken);
 
-  if (e->kind() == Bool) {
-    assert(!(castAs<BoolExpr>(e)->value()  ^ taken));
-    return;
+    LOG_STAT("CRACK:" + std::to_string(prevLoc) + "," + std::to_string(succLoc) + "\n" +
+             solver_.to_smt2() + "CRACK-END\n");
+
+    if (check() != z3::sat) {
+      reset();
+      addToSolver(e, !taken);
+      LOG_STAT("CRACK:" + std::to_string(prevLoc) + "," + std::to_string(succLoc) + "\n" +
+               solver_.to_smt2() + "CRACK-END\n");
+    }
   }
-  assert(isRelational(e.get()));
-
-  bool is_interesting;
-  if (pc == 0) {
-    is_interesting = last_interested_;
-  }
-  else
-    is_interesting = isInterestingJcc(e, taken, pc);
-
-  if (is_interesting)
-    negateAndLog(e, taken, prevLoc, succLoc);
-  addConstraint(e, taken, is_interesting);
 }
-
 
 void Solver::addAddr(ExprRef e, ADDRINT addr) {
   llvm::APInt v(e->bits(), addr);
@@ -550,24 +550,6 @@ void Solver::negatePath(ExprRef e, bool taken) {
     reset();
     // optimistic solving
     addToSolver(e, !taken);
-    checkAndSave("optimistic");
-  }
-}
-
-
-void Solver::negateAndLog(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc) {
-  reset();
-  syncConstraints(e);
-  addToSolver(e, !taken);
-  LOG_STAT("CRACK:" + std::to_string(prevLoc) + "," + std::to_string(succLoc) + "\n" +
-           solver_.to_smt2() + "CRACK-END\n");
-
-  bool sat = checkAndSave();
-  if (!sat) {
-    reset();
-    addToSolver(e, !taken);
-    LOG_STAT("CRACK:" + std::to_string(prevLoc) + "," + std::to_string(succLoc) + "\n" +
-             solver_.to_smt2() + "CRACK-END\n");
     checkAndSave("optimistic");
   }
 }

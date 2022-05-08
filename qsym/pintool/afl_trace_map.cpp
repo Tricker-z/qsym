@@ -41,11 +41,17 @@ void AflTraceMap::allocMap() {
   virgin_map_ = (UINT8*)safeMalloc(kMapSize);
   context_map_ = (UINT8*)safeMalloc(kMapSize);
   memset(virgin_map_, 0, kMapSize);
+  // Initialize bitmap for cracking branches
+  crack_map_ = (UINT8*)safeMalloc(kMapSize);
 }
 
 void AflTraceMap::setDefault() {
   memset(trace_map_, 0, kMapSize);
   memset(context_map_, 0, kMapSize);
+}
+
+void AflTraceMap::setDefaultCrack() {
+  memset(crack_map_, 0, kMapSize);
 }
 
 void AflTraceMap::import(const std::string path) {
@@ -60,6 +66,20 @@ void AflTraceMap::import(const std::string path) {
   ifs.read((char*)context_map_, kMapSize);
   if (!ifs)
     setDefault();
+  ifs.close();
+}
+
+void AflTraceMap::importCrack(const std::string crack_path) {
+  ifstream ifs;
+  ifs.open(crack_path, ios::binary);
+  if (ifs.fail()) {
+    setDefaultCrack();
+    return;
+  }
+  LOG_DEBUG("concolic execution with specified branches to negate\n");
+  ifs.read((char*)crack_map_, kMapSize);
+  if (!ifs)
+    setDefaultCrack();
   ifs.close();
 }
 
@@ -116,8 +136,9 @@ void AflTraceMap::commit() {
   }
 }
 
-AflTraceMap::AflTraceMap(const std::string path)
+AflTraceMap::AflTraceMap(const std::string path, const std::string crack_path)
   : path_(path),
+    crack_path_(crack_path),
     prev_loc_(0),
     visited_() {
   allocMap();
@@ -125,6 +146,11 @@ AflTraceMap::AflTraceMap(const std::string path)
     setDefault();
   else
     import(path);
+
+  if (crack_path.empty())
+    setDefaultCrack();
+  else
+    importCrack(crack_path);
 }
 
 bool AflTraceMap::isInterestingBranch(ADDRINT pc, bool taken) {
@@ -161,5 +187,10 @@ bool AflTraceMap::isInterestingBranch(ADDRINT pc, bool taken) {
   return ret;
 }
 
-} // namespace qsym
+bool AflTraceMap::isCrackBranch(UINT16 edge) {
+  if (crack_map_[edge])
+    return false;
+  return true;
+}
 
+} // namespace qsym

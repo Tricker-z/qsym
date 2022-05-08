@@ -28,7 +28,9 @@ public:
   Solver(
       const std::string input_file,
       const std::string out_dir,
-      const std::string bitmap);
+      const std::string bitmap,
+      const std::string crackmap,
+      const bool cracking);
 
   void push();
   void reset();
@@ -38,7 +40,7 @@ public:
 
   bool checkAndSave(const std::string& postfix="");
   void addJcc(ExprRef, bool, ADDRINT);
-  void crackJcc(ExprRef e, bool taken, ADDRINT pc, UINT16 prevLoc, UINT16 succLoc);
+  void crackJcc(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc);
   void addAddr(ExprRef, ADDRINT);
   void addAddr(ExprRef, llvm::APInt);
   void addValue(ExprRef, ADDRINT);
@@ -59,6 +61,7 @@ protected:
   AflTraceMap           trace_;
   bool                  last_interested_;
   bool                  syncing_;
+  bool                  cracking_;
   uint64_t              start_time_;
   uint64_t              solving_time_;
   ADDRINT               last_pc_;
@@ -87,7 +90,6 @@ protected:
 
   bool isInterestingJcc(ExprRef, bool, ADDRINT);
   void negatePath(ExprRef, bool);
-  void negateAndLog(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc);
   void solveOne(z3::expr);
 
   void checkFeasible();
