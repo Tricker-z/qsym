@@ -196,7 +196,7 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
 
 void Solver::crackJcc(ExprRef e, bool taken, UINT16 prevLoc, UINT16 succLoc) {
 
-  if (cracking_ && trace_.isCrackBranch(prevLoc)) {
+  if (cracking_ && trace_.isCrackBranch(prevLoc, succLoc)) {
     reset();
     syncConstraints(e);
     addToSolver(e, !taken);

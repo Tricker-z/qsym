@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <set>
+#include <unordered_map>
 
 #include "common.h"
 
@@ -23,7 +24,9 @@ private:
   UINT8 *virgin_map_;
   UINT8 *context_map_;
   UINT8 *crack_map_;
+  UINT8 *crack_virgin_map_;
   std::set<ADDRINT> visited_;
+  std::unordered_map<UINT16, std::set<UINT16>> edge_covered_; 
 
   void allocMap();
   void setDefault();
@@ -37,7 +40,7 @@ private:
 public:
   AflTraceMap(const std::string path, const std::string crack_path);
   bool isInterestingBranch(ADDRINT pc, bool taken);
-  bool isCrackBranch(UINT16 edge);
+  bool isCrackBranch(UINT16 prevLoc, UINT16 succLoc);
 };
 } // namespace qsym
 #endif // __AFL_TRACE_MAP_H__

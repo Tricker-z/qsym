@@ -43,6 +43,8 @@ void AflTraceMap::allocMap() {
   memset(virgin_map_, 0, kMapSize);
   // Initialize bitmap for cracking branches
   crack_map_ = (UINT8*)safeMalloc(kMapSize);
+  crack_virgin_map_ = (UINT8*)safeMalloc(kMapSize);
+  memset(crack_virgin_map_, 0, kMapSize);
 }
 
 void AflTraceMap::setDefault() {
@@ -187,10 +189,32 @@ bool AflTraceMap::isInterestingBranch(ADDRINT pc, bool taken) {
   return ret;
 }
 
-bool AflTraceMap::isCrackBranch(UINT16 edge) {
-  if (crack_map_[edge])
-    return false;
-  return true;
+bool AflTraceMap::isCrackBranch(UINT16 prevLoc, UINT16 succLoc) {
+
+  bool is_crack = false;
+
+  do {
+    if (crack_map_[prevLoc] == UINT8_MAX) break;
+    crack_virgin_map_[prevLoc]++;
+
+    if (edge_covered_.find(prevLoc) == edge_covered_.end()) 
+      edge_covered_[prevLoc] = std::set<UINT16>();
+
+    if (edge_covered_[prevLoc].find(succLoc) == edge_covered_[prevLoc].end()) {
+      edge_covered_[prevLoc].insert(succLoc);
+      is_crack = true;
+      break;
+    }
+
+    if ((crack_virgin_map_[prevLoc] | crack_map_[prevLoc]) != crack_map_[prevLoc]) {
+      crack_map_[prevLoc] |= crack_virgin_map_[prevLoc];
+      is_crack = true;
+      break;
+    }
+  } while (0);
+
+  return is_crack;
+
 }
 
 } // namespace qsym
