@@ -243,6 +243,8 @@ std::string Expr::toString() const {
   return stream.str();
 }
 
+
+// TODO: too frequently call expr.simplify() might not be a good idea
 void Expr::simplify() {
       if (isRelational(this)) {
         // If an expression is relational expression,

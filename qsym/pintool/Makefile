@@ -22,7 +22,9 @@ endif
 include $(CONFIG_ROOT)/makefile.config
 include makefile.rules
 include $(TOOLS_ROOT)/Config/makefile.default.rules
-TOOL_CXXFLAGS += -I$(ROOT)/third_party/z3/include
+#TOOL_CXXFLAGS += -I$(ROOT)/third_party/z3/include
+#TOOL_CXXFLAGS += -I/home/heqing/qsym/third_party/z3-z3-4.7.1/src/api
+#TOOL_CXXFLAGS += -I/home/heqing/qsym/third_party/z3-z3-4.7.1/src/api/c++
 
 ##############################################################
 #

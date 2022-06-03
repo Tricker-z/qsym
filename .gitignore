@@ -1,3 +1,7 @@
+# Eclipse?
+.cproject
+.project
+
 # pin
 pin.log
 pintool.log
@@ -12,6 +16,8 @@ pintool.log
 /build
 /venv
 /.cache
+/third_party/z3*
 
 # pytest
 .pytest_cache
+setup.sh

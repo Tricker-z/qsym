@@ -382,8 +382,13 @@ protected:
   }
 
   z3::expr toZ3ExprRecursively(bool verbose) override {
-    if (value_.getNumWords() == 1)
-      return context_.bv_val((__uint64)value_.getZExtValue(), bits_);
+    if (value_.getNumWords() == 1) {
+#if 0
+        return context_.bv_val((__uint64)value_.getZExtValue(), bits_);
+#else
+        return context_.bv_val((uint64_t)value_.getZExtValue(), bits_);
+#endif
+    }
     else
       return context_.bv_val(value_.toString(10, false).c_str(), bits_);
   }
